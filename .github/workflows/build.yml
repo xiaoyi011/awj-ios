@@ -1,23 +1,22 @@
 name: build-awj-dylib
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Show toolchain
         run: |
           xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos --show-sdk-path
 
       - name: Compile awj.dylib
         run: |
+          set -x
           xcrun -sdk iphoneos clang \
             -arch arm64 \
             -miphoneos-version-min=12.0 \
