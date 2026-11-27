@@ -1116,13 +1116,16 @@ static void awj_flash(UIButton* b) {
                    dispatch_get_main_queue(), ^{ b.backgroundColor = awj_off_color(); });
 }
 
+static void awj_close_ui_panel(void) {
+    if (g_awj_panel) { [g_awj_panel removeFromSuperview]; g_awj_panel = nil; }
+}
+
 static void awj_toggle_panel(void) {
     if (!g_awj_host) return;
     ensure_resolved();
     LOG("panel open ready=%d battle=%d", g_m_kill_monster != NULL, view() != NULL);
     if (g_awj_panel) {
-        [g_awj_panel removeFromSuperview];
-        g_awj_panel = nil;
+        awj_close_ui_panel();
         return;
     }
 
@@ -1543,7 +1546,7 @@ static void awj_init(void) {
     pthread_create(&t, NULL, udp_thread, NULL);
     pthread_create(&t, NULL, auto_thread, NULL);
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        usleep(15 * 1000000);   // 等游戏加载完再建窗口，避免挡住启动阶段触摸
+        usleep(10 * 1000000);   // 启动后 10 秒出球（对齐安卓）
         for (int i = 0; i < 600 && !g_awj_ball; i++) {
             dispatch_async(dispatch_get_main_queue(), ^{ awj_build_ui(); });
             usleep(500000);
