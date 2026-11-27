@@ -1137,11 +1137,11 @@ static void awj_toggle_panel(void) {
     CGFloat rowH = 40.0f;
     CGFloat attrRowH = 46.0f;
     CGFloat attrH = 6 * attrRowH;
-    CGFloat contentH = gridH + 16 + rowH + attrH + attrRowH + 12;
+    CGFloat contentH = gridH + 2 + rowH + attrH + attrRowH + 12;
     CGFloat sw = g_awj_host.bounds.size.width;
     CGFloat sh = g_awj_host.bounds.size.height;
     // 只露出 1 个属性行，其余靠滚动
-    CGFloat hgt = MIN(36 + gridH + 16 + rowH + 1 * attrRowH + footerH + 8, sh * 0.8f);
+    CGFloat hgt = MIN(36 + gridH + 2 + rowH + 1 * attrRowH + footerH + 8, sh * 0.8f);
 
     UIView* p = [[UIView alloc] initWithFrame:CGRectMake((sw - w) / 2, (sh - hgt) / 2, w, hgt)];
     p.backgroundColor = [UIColor colorWithRed:14/255.0 green:27/255.0 blue:46/255.0 alpha:0.94];
@@ -1273,7 +1273,7 @@ static void awj_toggle_panel(void) {
     }
 
     // ---- 命令输入行 ----
-    CGFloat extraY = 6 + gridH + 16;
+    CGFloat extraY = 6 + gridH + 2;
 
     // 全局加速滑条（Unity Time.timeScale，1-20x）
     UILabel* spdLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, extraY + 8, 150, 24)];
