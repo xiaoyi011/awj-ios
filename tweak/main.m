@@ -1189,7 +1189,7 @@ static void awj_toggle_panel(void) {
         }
     }
 
-    UIButton* lokiBtn = awj_btn(@"召唤洛姬4", awj_off_color(), ^{
+    UIButton* lokiBtn = awj_btn(@"召唤洛姬", awj_off_color(), ^{
         ensure_resolved();
         LOG("tap: loki");
         run_on_main(^{ do_summon_hero("洛姬 4"); });
@@ -1201,7 +1201,7 @@ static void awj_toggle_panel(void) {
                        dispatch_get_main_queue(), ^{ awj_flash(lokiBtn); });
     }] forControlEvents:UIControlEventTouchUpInside];
 
-    UIButton* thorBtn = awj_btn(@"召唤雷神4", awj_off_color(), ^{
+    UIButton* thorBtn = awj_btn(@"召唤雷神", awj_off_color(), ^{
         ensure_resolved();
         LOG("tap: thor");
         run_on_main(^{ do_summon_hero("雷神 4"); });
