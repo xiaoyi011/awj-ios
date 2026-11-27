@@ -1116,7 +1116,21 @@ static void awj_flash(UIButton* b) {
                    dispatch_get_main_queue(), ^{ b.backgroundColor = awj_off_color(); });
 }
 
-static UIControl* g_awj_dim;
+static UITapGestureRecognizer* g_awj_tap_out;
+
+static void awj_toggle_panel(void);
+
+@interface AWJOutsideTap : NSObject <UIGestureRecognizerDelegate>
+@end
+@implementation AWJOutsideTap
+- (void)handleTap:(UITapGestureRecognizer*)g { awj_toggle_panel(); }   // 面板外点击 → 关闭
+- (BOOL)gestureRecognizer:(UIGestureRecognizer*)g shouldReceiveTouch:(UITouch*)t {
+    if (!g_awj_panel) return NO;
+    CGPoint pt = [t locationInView:g_awj_panel.superview];
+    return !CGRectContainsPoint(g_awj_panel.frame, pt);   // 只接面板外的点击
+}
+@end
+static AWJOutsideTap* g_tap_delegate;
 
 static void awj_close_ui_panel(void) {
     if (g_awj_panel) {
@@ -1126,7 +1140,10 @@ static void awj_close_ui_panel(void) {
         [g_awj_panel removeFromSuperview];
         g_awj_panel = nil;
     }
-    if (g_awj_dim) { [g_awj_dim removeFromSuperview]; g_awj_dim = nil; }
+    if (g_awj_tap_out) {
+        [g_awj_host removeGestureRecognizer:g_awj_tap_out];
+        g_awj_tap_out = nil;
+    }
 }
 
 static void awj_toggle_panel(void) {
@@ -1152,13 +1169,6 @@ static void awj_toggle_panel(void) {
     // 只露出 1 个属性行，其余靠滚动
     // 面板只显示到「加速」那一栏，其余（属性/怪物血量）靠滚动查看
     CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 12, sh * 0.8f);
-
-    // 点面板外面关闭
-    g_awj_dim = [[UIControl alloc] initWithFrame:g_awj_host.bounds];
-    g_awj_dim.backgroundColor = [UIColor colorWithWhite:0 alpha:0.01];
-    [g_awj_dim addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){ awj_toggle_panel(); }]
-             forControlEvents:UIControlEventTouchUpInside];
-    [g_awj_host addSubview:g_awj_dim];
 
     UIView* p = [[UIView alloc] initWithFrame:CGRectMake((sw - w) / 2, (sh - hgt) / 2, w, hgt)];
     // 恢复上次拖动后的位置
@@ -1499,6 +1509,16 @@ static void awj_toggle_panel(void) {
 
     [g_awj_host addSubview:p];
     g_awj_panel = p;
+
+    // 面板外点击 → 关闭（手势判位置，不加透明遮罩）
+    if (!g_tap_delegate) g_tap_delegate = [AWJOutsideTap new];
+    if (!g_awj_tap_out) {
+        g_awj_tap_out = [[UITapGestureRecognizer alloc] initWithTarget:g_tap_delegate
+                                                               action:@selector(handleTap:)];
+        g_awj_tap_out.cancelsTouchesInView = NO;
+        g_awj_tap_out.delegate = g_tap_delegate;
+        [g_awj_host addGestureRecognizer:g_awj_tap_out];
+    }
 }
 
 static void awj_build_ui(void) {
