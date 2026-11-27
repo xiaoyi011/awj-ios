@@ -1217,10 +1217,10 @@ static void awj_toggle_panel(void) {
                        dispatch_get_main_queue(), ^{ awj_flash(thorBtn); });
     }] forControlEvents:UIControlEventTouchUpInside];
 
-    UIButton* lokiBtn = awj_btn(@"召唤洛基4", awj_off_color(), ^{
+    UIButton* lokiBtn = awj_btn(@"召唤洛姬4", awj_off_color(), ^{
         ensure_resolved();
         LOG("tap: loki");
-        run_on_main(^{ do_summon_hero("洛基 4"); });
+        run_on_main(^{ do_summon_hero("洛姬 4"); });
     });
     lokiBtn.backgroundColor = awj_off_color();
     place(lokiBtn);
