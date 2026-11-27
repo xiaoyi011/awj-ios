@@ -1400,7 +1400,7 @@ static void awj_toggle_panel(void) {
     UIButton* licBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     licBtn.frame = CGRectMake(8, 8, w - 162, 20);   // 留出中间提示 + 右侧解绑的空间
     licBtn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    licBtn.titleLabel.font = [UIFont systemFontOfSize:11];
+    licBtn.titleLabel.font = [UIFont systemFontOfSize:9];
     licBtn.titleLabel.adjustsFontSizeToFitWidth = YES;
     licBtn.titleLabel.minimumScaleFactor = 0.7;
     licBtn.titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
