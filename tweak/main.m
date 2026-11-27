@@ -1116,8 +1116,17 @@ static void awj_flash(UIButton* b) {
                    dispatch_get_main_queue(), ^{ b.backgroundColor = awj_off_color(); });
 }
 
+static UIControl* g_awj_dim;
+
 static void awj_close_ui_panel(void) {
-    if (g_awj_panel) { [g_awj_panel removeFromSuperview]; g_awj_panel = nil; }
+    if (g_awj_panel) {
+        NSUserDefaults* d = [NSUserDefaults standardUserDefaults];   // 记住面板位置
+        [d setFloat:g_awj_panel.frame.origin.x forKey:@"awj_panel_x"];
+        [d setFloat:g_awj_panel.frame.origin.y forKey:@"awj_panel_y"];
+        [g_awj_panel removeFromSuperview];
+        g_awj_panel = nil;
+    }
+    if (g_awj_dim) { [g_awj_dim removeFromSuperview]; g_awj_dim = nil; }
 }
 
 static void awj_toggle_panel(void) {
@@ -1141,9 +1150,28 @@ static void awj_toggle_panel(void) {
     CGFloat sw = g_awj_host.bounds.size.width;
     CGFloat sh = g_awj_host.bounds.size.height;
     // 只露出 1 个属性行，其余靠滚动
-    CGFloat hgt = MIN(36 + gridH + 2 + rowH + 1 * attrRowH + footerH + 8, sh * 0.8f);
+    // 面板只显示到「加速」那一栏，其余（属性/怪物血量）靠滚动查看
+    CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 12, sh * 0.8f);
+
+    // 点面板外面关闭
+    g_awj_dim = [[UIControl alloc] initWithFrame:g_awj_host.bounds];
+    g_awj_dim.backgroundColor = [UIColor colorWithWhite:0 alpha:0.01];
+    [g_awj_dim addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){ awj_toggle_panel(); }]
+             forControlEvents:UIControlEventTouchUpInside];
+    [g_awj_host addSubview:g_awj_dim];
 
     UIView* p = [[UIView alloc] initWithFrame:CGRectMake((sw - w) / 2, (sh - hgt) / 2, w, hgt)];
+    // 恢复上次拖动后的位置
+    NSUserDefaults* ud0 = [NSUserDefaults standardUserDefaults];
+    if ([ud0 objectForKey:@"awj_panel_x"] != nil) {
+        CGFloat px = [ud0 floatForKey:@"awj_panel_x"];
+        CGFloat py = [ud0 floatForKey:@"awj_panel_y"];
+        if (px >= -w * 0.5 && px <= sw - 40 && py >= 0 && py <= sh - 60) {
+            CGRect f = p.frame;
+            f.origin = CGPointMake(px, py);
+            p.frame = f;
+        }
+    }
     p.backgroundColor = [UIColor colorWithRed:14/255.0 green:27/255.0 blue:46/255.0 alpha:0.94];
     p.layer.cornerRadius = 14;
     p.layer.borderWidth = 1;
@@ -1429,7 +1457,7 @@ static void awj_toggle_panel(void) {
     // 中间提示：字号很小，只在剩余空间显示，不挤压卡密到期时间
     UILabel* keyHint = [[UILabel alloc] initWithFrame:CGRectMake(w - 152, 10, 62, 16)];
     keyHint.text = @"音量键隐藏面板";
-    keyHint.textColor = [UIColor colorWithWhite:0.62 alpha:1];
+    keyHint.textColor = UIColor.whiteColor;   // 与解绑按钮文字同色
     keyHint.font = [UIFont systemFontOfSize:7];
     keyHint.textAlignment = NSTextAlignmentCenter;
     keyHint.adjustsFontSizeToFitWidth = YES;
