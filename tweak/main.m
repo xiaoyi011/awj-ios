@@ -1168,7 +1168,7 @@ static void awj_toggle_panel(void) {
     CGFloat sh = g_awj_host.bounds.size.height;
     // 只露出 1 个属性行，其余靠滚动
     // 面板只显示到「加速」那一栏，其余（属性/怪物血量）靠滚动查看
-    CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 2, sh * 0.8f);
+    CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 12, sh * 0.8f);
 
     UIView* p = [[UIView alloc] initWithFrame:CGRectMake((sw - w) / 2, (sh - hgt) / 2, w, hgt)];
     // 恢复上次拖动后的位置
@@ -1225,15 +1225,6 @@ static void awj_toggle_panel(void) {
         [sv addSubview:b];
     };
 
-    UIButton* autoBtn = awj_btn(@"自动清场", awj_off_color(), ^{});
-    autoBtn.backgroundColor = g_auto ? awj_on_color() : awj_off_color();
-    place(autoBtn);
-    [autoBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
-        g_auto = !g_auto;
-        autoBtn.backgroundColor = g_auto ? awj_on_color() : awj_off_color();
-        LOG("auto=%d", g_auto);
-    }] forControlEvents:UIControlEventTouchUpInside];
-
     UIButton* winBtn = awj_btn(@"PVP直接判胜", awj_off_color(), ^{
         ensure_resolved();
         LOG("tap: win");
@@ -1246,40 +1237,13 @@ static void awj_toggle_panel(void) {
                        dispatch_get_main_queue(), ^{ awj_flash(winBtn); });
     }] forControlEvents:UIControlEventTouchUpInside];
 
-    UIButton* thorBtn = awj_btn(@"召唤雷神4", awj_off_color(), ^{
-        ensure_resolved();
-        LOG("tap: thor");
-        run_on_main(^{ do_summon_hero("雷神 4"); });
-    });
-    thorBtn.backgroundColor = awj_off_color();
-    place(thorBtn);
-    [thorBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{ awj_flash(thorBtn); });
-    }] forControlEvents:UIControlEventTouchUpInside];
-
-    UIButton* lokiBtn = awj_btn(@"召唤洛姬4", awj_off_color(), ^{
-        ensure_resolved();
-        LOG("tap: loki");
-        run_on_main(^{ do_summon_hero("洛姬 4"); });
-    });
-    lokiBtn.backgroundColor = awj_off_color();
-    place(lokiBtn);
-    [lokiBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{ awj_flash(lokiBtn); });
-    }] forControlEvents:UIControlEventTouchUpInside];
-
-    UIButton* gridBtn = awj_btn(@"扩建城墙", awj_off_color(), ^{
-        ensure_resolved();
-        LOG("tap: grid");
-        run_on_main(^{ do_unlock_grid(); });
-    });
-    gridBtn.backgroundColor = awj_off_color();
-    place(gridBtn);
-    [gridBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{ awj_flash(gridBtn); });
+    UIButton* autoBtn = awj_btn(@"自动清场", awj_off_color(), ^{});
+    autoBtn.backgroundColor = g_auto ? awj_on_color() : awj_off_color();
+    place(autoBtn);
+    [autoBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        g_auto = !g_auto;
+        autoBtn.backgroundColor = g_auto ? awj_on_color() : awj_off_color();
+        LOG("auto=%d", g_auto);
     }] forControlEvents:UIControlEventTouchUpInside];
 
     volatile int* tflags[2] = { &g_t_sp, &g_t_inv };
@@ -1309,6 +1273,42 @@ static void awj_toggle_panel(void) {
             }] forControlEvents:UIControlEventTouchUpInside];
         }
     }
+
+    UIButton* lokiBtn = awj_btn(@"召唤洛姬4", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: loki");
+        run_on_main(^{ do_summon_hero("洛姬 4"); });
+    });
+    lokiBtn.backgroundColor = awj_off_color();
+    place(lokiBtn);
+    [lokiBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(lokiBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* thorBtn = awj_btn(@"召唤雷神4", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: thor");
+        run_on_main(^{ do_summon_hero("雷神 4"); });
+    });
+    thorBtn.backgroundColor = awj_off_color();
+    place(thorBtn);
+    [thorBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(thorBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* gridBtn = awj_btn(@"扩建城墙", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: grid");
+        run_on_main(^{ do_unlock_grid(); });
+    });
+    gridBtn.backgroundColor = awj_off_color();
+    place(gridBtn);
+    [gridBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(gridBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
 
     // ---- 命令输入行 ----
     CGFloat extraY = 6 + gridH + 2;
