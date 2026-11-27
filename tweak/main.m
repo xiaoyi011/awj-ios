@@ -1130,7 +1130,7 @@ static void awj_toggle_panel(void) {
     }
 
     CGFloat w = 300;
-    int gridItems = GM_BTN_COUNT + 2;
+    int gridItems = GM_BTN_COUNT + 5;   // 自动清场 / PVP判胜 / 雷神 / 洛姬 / 扩建城墙 + GM 按钮
     int gridRows = (gridItems + 1) / 2;
     CGFloat footerH = 36;
     CGFloat gridH = (CGFloat)gridRows * 46.0f;
@@ -1252,20 +1252,6 @@ static void awj_toggle_panel(void) {
         UIButton* b = awj_btn([NSString stringWithUTF8String:kGmBtns[i].title], awj_off_color(), ^{});
         b.backgroundColor = (flag && *flag) ? awj_on_color() : awj_off_color();
         place(b);
-        if (i == GM_BTN_COUNT - 1) {
-            UIButton* hint = [UIButton buttonWithType:UIButtonTypeSystem];
-            hint.userInteractionEnabled = NO;
-            hint.backgroundColor = awj_off_color();
-            [hint setTitle:@"音量上打开 / 音量下隐藏" forState:UIControlStateNormal];
-            [hint setTitleColor:[UIColor colorWithWhite:0.7 alpha:1] forState:UIControlStateNormal];
-            hint.layer.cornerRadius = 8;
-            place(hint);
-            hint.titleLabel.font = [UIFont systemFontOfSize:9.5];
-            hint.titleLabel.adjustsFontSizeToFitWidth = YES;
-            hint.titleLabel.minimumScaleFactor = 0.5;
-            hint.titleLabel.numberOfLines = 2;
-            hint.titleLabel.textAlignment = NSTextAlignmentCenter;
-        }
 
         if (flag) {
             [b addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
@@ -1412,9 +1398,12 @@ static void awj_toggle_panel(void) {
     [p addSubview:footer];
 
     UIButton* licBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    licBtn.frame = CGRectMake(10, 8, w - 92, 20);
+    licBtn.frame = CGRectMake(8, 8, w - 162, 20);   // 留出中间提示 + 右侧解绑的空间
     licBtn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     licBtn.titleLabel.font = [UIFont systemFontOfSize:11];
+    licBtn.titleLabel.adjustsFontSizeToFitWidth = YES;
+    licBtn.titleLabel.minimumScaleFactor = 0.7;
+    licBtn.titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
     [licBtn setTitleColor:[UIColor colorWithWhite:0.85 alpha:1] forState:UIControlStateNormal];
     if (g_lic_ok) {
         [licBtn setTitle:[NSString stringWithFormat:@"卡密到期: %@", g_lic_exp ?: @""]
@@ -1436,6 +1425,17 @@ static void awj_toggle_panel(void) {
             }
         });
     }] forControlEvents:UIControlEventTouchUpInside];
+
+    // 中间提示：字号很小，只在剩余空间显示，不挤压卡密到期时间
+    UILabel* keyHint = [[UILabel alloc] initWithFrame:CGRectMake(w - 152, 10, 62, 16)];
+    keyHint.text = @"音量键隐藏面板";
+    keyHint.textColor = [UIColor colorWithWhite:0.62 alpha:1];
+    keyHint.font = [UIFont systemFontOfSize:7];
+    keyHint.textAlignment = NSTextAlignmentCenter;
+    keyHint.adjustsFontSizeToFitWidth = YES;
+    keyHint.minimumScaleFactor = 0.7;
+    keyHint.lineBreakMode = NSLineBreakByTruncatingTail;
+    [footer addSubview:keyHint];
 
     NSString* unbindTitle = g_unbind_left >= 0
         ? [NSString stringWithFormat:@"解绑(%d)", g_unbind_left]
