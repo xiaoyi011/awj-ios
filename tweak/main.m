@@ -131,6 +131,8 @@ static size_t g_view_offset;
 static void* g_m_kill_monster;     // BattleDebugActionView.OnKillMonster
 static void* g_m_cheat;            // BattleDebugActionView.OnCheatClick
 static void* g_m_kill_robot;       // BattleDebugActionView.OnKillRobotClick
+static void* g_m_place_hero;       // BattleDebugActionView.OnPlaceHeroClick
+static void* g_f_hero_input;       // BattleDebugActionView.placeHeroInput
 static void* g_bpvp_field;         // BaseViewExtend.battlePvpProxy (static)
 static void* g_m_set_result;       // BattlePvpProxy.SetBattleResult(BattleResult, bool)
 static void* g_bproxy_field;       // BattlePvpProxy.battleProxy (instance)
@@ -274,6 +276,9 @@ static int resolve_game(void) {
 
     g_lua_input_field = x_class_get_field_from_name(dv, "luaCodeInput");
     g_m_exec_lua = x_class_get_method_from_name(dv, "OnExecuteLuaClick", 0);
+    g_m_place_hero = x_class_get_method_from_name(dv, "OnPlaceHeroClick", 0);
+    g_f_hero_input = x_class_get_field_from_name(dv, "placeHeroInput");
+    LOG("hero api: place=%d input=%d", g_m_place_hero != NULL, g_f_hero_input != NULL);
     LOG("cmd box: field=%d method=%d strnew=%d", g_lua_input_field != NULL,
         g_m_exec_lua != NULL, x_string_new != NULL);
 
@@ -983,6 +988,29 @@ static void gm_call2(int idx, int quiet) {
 
 static void gm_call(int idx) { gm_call2(idx, 0); }
 
+// 召唤雷神 4：往 placeHeroInput 填 "雷神 4" 再点上阵按钮
+static void do_summon_thor(void) {
+    ensure_resolved();
+    void* v = view();
+    if (!v) { LOG("thor: no view (not in battle?)"); return; }
+    if (!g_m_place_hero || !g_f_hero_input) { LOG("thor: api missing"); return; }
+    void* inp = NULL;
+    x_field_get_value(v, g_f_hero_input, &inp);
+    if (!inp) { LOG("thor: no input object"); return; }
+    void* cls = x_object_get_class(inp);
+    void* setter = cls ? x_class_get_method_from_name(cls, "set_text", 1) : NULL;
+    if (!setter) { LOG("thor: no set_text"); return; }
+    void* s = x_string_new("雷神 4");
+    void* p[1] = { s };
+    void* e = NULL;
+    x_runtime_invoke(setter, inp, p, &e);
+    LOG("thor: set_text exc=%d", e != NULL);
+    if (e) return;
+    void* e2 = NULL;
+    x_runtime_invoke(g_m_place_hero, v, NULL, &e2);
+    LOG("thor: click exc=%d", e2 != NULL);
+}
+
 static void exec_cmd(const char* cmd) {
     void* v = view();
     if (!v) { LOG("cmd: no view"); return; }
@@ -1158,6 +1186,18 @@ static void awj_toggle_panel(void) {
     [winBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{ awj_flash(winBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* thorBtn = awj_btn(@"召唤雷神4", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: thor");
+        run_on_main(^{ do_summon_thor(); });
+    });
+    thorBtn.backgroundColor = awj_off_color();
+    place(thorBtn);
+    [thorBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(thorBtn); });
     }] forControlEvents:UIControlEventTouchUpInside];
 
     volatile int* tflags[2] = { &g_t_sp, &g_t_inv };
