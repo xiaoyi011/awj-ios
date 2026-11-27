@@ -346,14 +346,7 @@ static void invoke0(void* method, void* obj, const char* what) {
 static volatile int g_auto = 0;
 static volatile int g_pending = 0;
 
-static int g_udp_fd = -1;
-static struct sockaddr_in g_peer;
-static socklen_t g_peer_len = 0;
 
-static void reply(const char* msg) {
-    if (g_udp_fd >= 0 && g_peer_len > 0)
-        sendto(g_udp_fd, msg, strlen(msg), 0, (struct sockaddr*)&g_peer, g_peer_len);
-}
 
 static void do_clear(void) {
     void* v = view();
@@ -435,51 +428,6 @@ static void run_on_main(void (^block)(void)) {
     dispatch_async(dispatch_get_main_queue(), block);
 }
 
-static void handle(const char* cmd) {
-    if (!g_m_kill_monster) { resolve_api(); resolve_game(); }
-    if (!strcmp(cmd, "1")) { reply("ok:clear"); run_on_main(^{ do_clear(); }); }
-    else if (!strcmp(cmd, "2")) { reply("ok:cheat"); run_on_main(^{ do_cheat(); }); }
-    else if (!strcmp(cmd, "3")) { reply("ok:win"); run_on_main(^{ do_win(); }); }
-    else if (!strcmp(cmd, "a1")) { g_auto = 1; LOG("auto on"); reply("ok:auto1"); }
-    else if (!strcmp(cmd, "a0")) { g_auto = 0; LOG("auto off"); reply("ok:auto0"); }
-    else if (!strcmp(cmd, "s")) {
-        char b[160];
-        snprintf(b, sizeof(b), "ready=%d mask=%u img=%d n=%d auto=%d battle=%d",
-                 g_m_kill_monster != NULL, g_cls_mask, g_image != NULL,
-                 g_img_count, g_auto, view() != NULL);
-        LOG("status %s", b);
-        reply(b);
-    }
-    else if (!strcmp(cmd, "i")) {
-        reply(g_img_hint[0] ? g_img_hint : "no-csharp-image");
-    }
-    else if (!strcmp(cmd, "u1")) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (g_awj_ball) { g_awj_ball.hidden = NO; } else { awj_build_ui(); }
-        });
-        reply("ok:ui1");
-    }
-    else if (!strcmp(cmd, "u0")) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (g_awj_ball) g_awj_ball.hidden = YES;
-            if (g_awj_panel) { [g_awj_panel removeFromSuperview]; g_awj_panel = nil; }
-        });
-        reply("ok:ui0");
-    }
-    else if (!strcmp(cmd, "l")) {
-        char b[300];
-        b[0] = 0;
-        int total = g_ring_n < LOGRING ? g_ring_n : LOGRING;
-        for (int k = 0; k < total; k++) {
-            int idx = (g_ring_n - 1 - k + LOGRING * 4) % LOGRING;
-            strncat(b, g_ring[idx], sizeof(b) - strlen(b) - 2);
-            strncat(b, "|", sizeof(b) - strlen(b) - 1);
-            if (strlen(b) > 200) break;
-        }
-        reply(b[0] ? b : "empty");
-    }
-    else { LOG("unknown cmd: %s", cmd); reply("err:unknown"); }
-}
 
 static void* auto_thread(void* arg) {
     (void)arg;
@@ -505,39 +453,6 @@ static void* auto_thread(void* arg) {
     return NULL;
 }
 
-static void* udp_thread(void* arg) {
-    (void)arg;
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) { LOG("socket failed"); return NULL; }
-    int one = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    struct sockaddr_in a;
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(27043);
-    a.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind(fd, (struct sockaddr*)&a, sizeof(a)) != 0) {
-        LOG("udp bind 27043 failed");
-        close(fd);
-        return NULL;
-    }
-    LOG("udp listening on 27043");
-    g_udp_fd = fd;
-    char buf[64];
-    for (;;) {
-        struct sockaddr_in peer;
-        socklen_t pl = sizeof(peer);
-        ssize_t n = recvfrom(fd, buf, sizeof(buf)-1, 0, (struct sockaddr*)&peer, &pl);
-        if (n <= 0) continue;
-        g_peer = peer;
-        g_peer_len = pl;
-        buf[n] = 0;
-        while (n > 0 && (buf[n-1] == '\n' || buf[n-1] == '\r' || buf[n-1] == ' ')) buf[--n] = 0;
-        LOG("cmd: %s", buf);
-        handle(buf);
-    }
-    return NULL;
-}
 
 // ---------------- 游戏内悬浮面板 ----------------
 static UIWindow* g_awj_host;
@@ -1591,7 +1506,6 @@ static void awj_init(void) {
         }
     });
     pthread_t t;
-    pthread_create(&t, NULL, udp_thread, NULL);
     pthread_create(&t, NULL, auto_thread, NULL);
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         usleep(10 * 1000000);   // 启动后 10 秒出球（对齐安卓）
