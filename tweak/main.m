@@ -1168,7 +1168,7 @@ static void awj_toggle_panel(void) {
     CGFloat sh = g_awj_host.bounds.size.height;
     // 只露出 1 个属性行，其余靠滚动
     // 面板只显示到「加速」那一栏，其余（属性/怪物血量）靠滚动查看
-    CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 12, sh * 0.8f);
+    CGFloat hgt = MIN(36 + gridH + 2 + rowH + footerH + 2, sh * 0.8f);
 
     UIView* p = [[UIView alloc] initWithFrame:CGRectMake((sw - w) / 2, (sh - hgt) / 2, w, hgt)];
     // 恢复上次拖动后的位置
