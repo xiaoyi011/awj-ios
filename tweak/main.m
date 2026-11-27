@@ -133,6 +133,7 @@ static void* g_m_cheat;            // BattleDebugActionView.OnCheatClick
 static void* g_m_kill_robot;       // BattleDebugActionView.OnKillRobotClick
 static void* g_m_place_hero;       // BattleDebugActionView.OnPlaceHeroClick
 static void* g_f_hero_input;       // BattleDebugActionView.placeHeroInput
+static void* g_m_unlock_grid;      // BattleDebugActionView.OnUnlockAllGridClick
 static void* g_bpvp_field;         // BaseViewExtend.battlePvpProxy (static)
 static void* g_m_set_result;       // BattlePvpProxy.SetBattleResult(BattleResult, bool)
 static void* g_bproxy_field;       // BattlePvpProxy.battleProxy (instance)
@@ -213,7 +214,6 @@ typedef struct {
 static const GmBtn kGmBtns[] = {
     {"无限银币",              "OnSpClick", 0, 0},
     {"无敌",                  "OnSelfInvulnerableStationClick", 0, 0},
-    {"停止移动",              "OnStopMonsterMoveClicked", 0, 0},
 };
 
 #define GM_BTN_COUNT ((int)(sizeof(kGmBtns) / sizeof(kGmBtns[0])))
@@ -278,7 +278,9 @@ static int resolve_game(void) {
     g_m_exec_lua = x_class_get_method_from_name(dv, "OnExecuteLuaClick", 0);
     g_m_place_hero = x_class_get_method_from_name(dv, "OnPlaceHeroClick", 0);
     g_f_hero_input = x_class_get_field_from_name(dv, "placeHeroInput");
-    LOG("hero api: place=%d input=%d", g_m_place_hero != NULL, g_f_hero_input != NULL);
+    g_m_unlock_grid = x_class_get_method_from_name(dv, "OnUnlockAllGridClick", 0);
+    if (!g_m_unlock_grid) g_m_unlock_grid = x_class_get_method_from_name(dv, "OnHelpOpenGridClick", 0);
+    LOG("hero api: place=%d input=%d grid=%d", g_m_place_hero != NULL, g_f_hero_input != NULL, g_m_unlock_grid != NULL);
     LOG("cmd box: field=%d method=%d strnew=%d", g_lua_input_field != NULL,
         g_m_exec_lua != NULL, x_string_new != NULL);
 
@@ -988,27 +990,42 @@ static void gm_call2(int idx, int quiet) {
 
 static void gm_call(int idx) { gm_call2(idx, 0); }
 
-// 召唤雷神 4：往 placeHeroInput 填 "雷神 4" 再点上阵按钮
-static void do_summon_thor(void) {
+// 召唤英雄：往 placeHeroInput 填 "<名字> <星级>" 再点上阵按钮
+static void do_summon_hero(const char* text) {
     ensure_resolved();
     void* v = view();
-    if (!v) { LOG("thor: no view (not in battle?)"); return; }
-    if (!g_m_place_hero || !g_f_hero_input) { LOG("thor: api missing"); return; }
+    if (!v) { LOG("summon(%s): no view (not in battle?)", text); return; }
+    if (!g_m_place_hero || !g_f_hero_input) { LOG("summon(%s): api missing", text); return; }
     void* inp = NULL;
     x_field_get_value(v, g_f_hero_input, &inp);
-    if (!inp) { LOG("thor: no input object"); return; }
+    if (!inp) { LOG("summon(%s): no input object", text); return; }
     void* cls = x_object_get_class(inp);
     void* setter = cls ? x_class_get_method_from_name(cls, "set_text", 1) : NULL;
-    if (!setter) { LOG("thor: no set_text"); return; }
-    void* s = x_string_new("雷神 4");
+    if (!setter) { LOG("summon(%s): no set_text", text); return; }
+    void* s = x_string_new(text);
     void* p[1] = { s };
     void* e = NULL;
     x_runtime_invoke(setter, inp, p, &e);
-    LOG("thor: set_text exc=%d", e != NULL);
+    LOG("summon(%s): set_text exc=%d", text, e != NULL);
     if (e) return;
     void* e2 = NULL;
     x_runtime_invoke(g_m_place_hero, v, NULL, &e2);
-    LOG("thor: click exc=%d", e2 != NULL);
+    LOG("summon(%s): click exc=%d", text, e2 != NULL);
+}
+
+// 扩建城墙格子
+static void do_unlock_grid(void) {
+    ensure_resolved();
+    void* v = view();
+    if (!v) { LOG("grid: no view"); return; }
+    if (!g_m_unlock_grid && g_dv_class)
+        g_m_unlock_grid = x_class_get_method_from_name(g_dv_class, "OnUnlockAllGridClick", 0);
+    if (!g_m_unlock_grid && g_dv_class)
+        g_m_unlock_grid = x_class_get_method_from_name(g_dv_class, "OnHelpOpenGridClick", 0);
+    if (!g_m_unlock_grid) { LOG("grid: api missing"); return; }
+    void* e = NULL;
+    x_runtime_invoke(g_m_unlock_grid, v, NULL, &e);
+    LOG("grid: exc=%d", e != NULL);
 }
 
 static void exec_cmd(const char* cmd) {
@@ -1191,13 +1208,37 @@ static void awj_toggle_panel(void) {
     UIButton* thorBtn = awj_btn(@"召唤雷神4", awj_off_color(), ^{
         ensure_resolved();
         LOG("tap: thor");
-        run_on_main(^{ do_summon_thor(); });
+        run_on_main(^{ do_summon_hero("雷神 4"); });
     });
     thorBtn.backgroundColor = awj_off_color();
     place(thorBtn);
     [thorBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{ awj_flash(thorBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* lokiBtn = awj_btn(@"召唤洛基4", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: loki");
+        run_on_main(^{ do_summon_hero("洛基 4"); });
+    });
+    lokiBtn.backgroundColor = awj_off_color();
+    place(lokiBtn);
+    [lokiBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(lokiBtn); });
+    }] forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* gridBtn = awj_btn(@"扩建城墙", awj_off_color(), ^{
+        ensure_resolved();
+        LOG("tap: grid");
+        run_on_main(^{ do_unlock_grid(); });
+    });
+    gridBtn.backgroundColor = awj_off_color();
+    place(gridBtn);
+    [gridBtn addAction:[UIAction actionWithHandler:^(__kindof UIAction* a){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ awj_flash(gridBtn); });
     }] forControlEvents:UIControlEventTouchUpInside];
 
     volatile int* tflags[2] = { &g_t_sp, &g_t_inv };
